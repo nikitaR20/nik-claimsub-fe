@@ -92,7 +92,7 @@ function AddClaimPage() {
 
   return (
     <div>
-      <h2>Add Claim</h2>
+      <h2 style={{ textAlign: "center" }}>Add Claim</h2>
       <AddClaimForm
         form={form}
         onChange={handleChange}
@@ -123,24 +123,53 @@ function AddClaimPage() {
 // UploadDocumentPage with optional claimId param from URL
 function UploadDocumentPage() {
   const { claimId } = useParams();
-  // pass null if claimId undefined for optional claim selection in UploadDocument
   return <UploadDocument claimId={claimId || null} />;
 }
 
-// ClaimsPage fetches and passes claims to ClaimList
+// ClaimsPage fetches providers and claims, enriches claims, then passes to ClaimList
 function ClaimsPage() {
   const [claims, setClaims] = useState([]);
+  const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Hardcoded risks array (same as AddClaimPage)
+  const risks = [
+    { risk_id: "1084bc4d-dd50-4eb4-a7da-591dc0f9bd76", name: "Low Risk" },
+    { risk_id: "7fbb4e86-f09a-4766-a9f5-3442d6142ec1", name: "Medium Risk" },
+    { risk_id: "8e5d5889-bb99-4dce-be13-d5566637ce70", name: "High Risk" },
+  ];
+
   useEffect(() => {
-    fetch(`${API_BASE}/claims/?skip=0&limit=100`)
-      .then((res) => {
+    Promise.all([
+      fetch(`${API_BASE}/providers/`).then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch providers");
+        return res.json();
+      }),
+      fetch(`${API_BASE}/claims/?skip=0&limit=100`).then((res) => {
         if (!res.ok) throw new Error("Failed to fetch claims");
         return res.json();
-      })
-      .then((data) => {
-        setClaims(data);
+      }),
+    ])
+      .then(([providersData, claimsData]) => {
+        setProviders(providersData);
+
+        const enrichedClaims = claimsData.map((claim) => {
+          const provider = providersData.find(
+            (p) => p.provider_id === claim.provider_id
+          );
+          const risk = risks.find((r) => r.risk_id === claim.risk_id);
+
+          return {
+            ...claim,
+            providerName: provider
+              ? `${provider.first_name} ${provider.last_name}`
+              : "Unknown Provider",
+            riskName: risk ? risk.name : "Unknown Risk",
+          };
+        });
+
+        setClaims(enrichedClaims);
         setLoading(false);
       })
       .catch((err) => {
@@ -154,8 +183,8 @@ function ClaimsPage() {
 
   return (
     <div>
-      <h2>Claims List</h2>
-      <ClaimList claims={claims} />
+      <h2 style={{ textAlign: "center" }}>Claims List</h2>
+      <ClaimList claims={claims} providers={providers} risks={risks}/>
     </div>
   );
 }
