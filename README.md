@@ -104,7 +104,7 @@ If your backend runs on a different address than `http://localhost:5000`, do thi
 3. Open `.env` and type:
 
 ```
-REACT_APP_API_URL=http://localhost:5000
+REACT_APP_API_URL=http://localhost:8000
 ```
 
 * Replace the URL with your backend URL if it’s different.
