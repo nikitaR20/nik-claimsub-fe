@@ -61,7 +61,7 @@ The backend must be running before the frontend can work:
 4. Make sure the backend opens at a URL like:
 
 ```
-http://localhost:5000
+http://localhost:8000
 ```
 
 > ✅ The frontend will **not work** if the backend is not running.
