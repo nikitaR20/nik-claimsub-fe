@@ -1,4 +1,3 @@
-// src/App.js
 import React, { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
@@ -6,187 +5,119 @@ import {
   Route,
   Link,
   useNavigate,
-  useParams,
 } from "react-router-dom";
-
 import AddClaimForm from "./components/AddClaimForm";
 import ClaimList from "./components/ClaimList";
-import UploadDocument from "./components/UploadDocument";
 
 const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
-// AddClaimPage component with redirect after submit
 function AddClaimPage() {
   const navigate = useNavigate();
-
+  const [patients, setPatients] = useState([]);
   const [providers, setProviders] = useState([]);
-  const [risks] = useState([
-    { risk_id: "1084bc4d-dd50-4eb4-a7da-591dc0f9bd76", name: "Low Risk" },
-    { risk_id: "7fbb4e86-f09a-4766-a9f5-3442d6142ec1", name: "Medium Risk" },
-    { risk_id: "8e5d5889-bb99-4dce-be13-d5566637ce70", name: "High Risk" },
-  ]);
-  const [form, setForm] = useState({
-    provider_id: "",
-    risk_id: "",
-    status: "To Do",
-    submission_date: "",
-    summary: "",
-  });
-  const [createdClaimId, setCreatedClaimId] = useState(null);
 
+  const [form, setForm] = useState({
+    patient_id: "",
+    provider_id: "",
+    claim_amount: 0,
+    claim_date: "",
+    claim_type: "",
+    claim_submission_method: "",
+    claim_status:"",
+    predicted_payout: 0,
+    approval_probability: 0,
+    coverage_notes: "",
+    diagnosis_code: "",
+    procedure_code: "",
+    suggested_diagnosis_code: "",
+    suggested_procedure_code: "",
+    fraud_flag: false,
+    fraud_reason: "",
+  });
+
+  // Fetch patients & providers
   useEffect(() => {
+    fetch(`${API_BASE}/patients/`)
+      .then(res => res.json())
+      .then(data => setPatients(Array.isArray(data) ? data : []))
+      .catch(() => setPatients([]));
+
     fetch(`${API_BASE}/providers/`)
-      .then((res) => res.json())
-      .then(setProviders)
+      .then(res => res.json())
+      .then(data => setProviders(Array.isArray(data) ? data : []))
       .catch(() => setProviders([]));
   }, []);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setForm({
+      ...form,
+      [name]: type === "checkbox" ? checked : value,
+    });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.provider_id || !form.status || !form.submission_date) {
-      alert("Please fill in required fields.");
-      return;
+  const handleSelectPatient = (e) => {
+    const selected = patients.find((p) => p.patient_id === e.target.value);
+    if (selected) {
+      setForm({
+        ...form,
+        patient_id: selected.patient_id,
+      });
+    } else {
+      setForm({ ...form, patient_id: "" });
     }
-    const payload = {
-      provider_id: form.provider_id,
-      risk_id: form.risk_id || null,
-      status: form.status,
-      submission_date: form.submission_date,
-      summary: form.summary || "",
-    };
+  };
 
+  const handleSelectProvider = (e) => {
+    setForm({ ...form, provider_id: e.target.value });
+  };
+
+  // ✅ Updated: parent now receives formData instead of event
+  const handleSubmit = async (formData) => {
     try {
       const res = await fetch(`${API_BASE}/claims/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(formData),
       });
-      if (!res.ok) throw new Error("Failed to create claim");
-      const claim = await res.json();
 
-      setCreatedClaimId(claim.claim_id);
-      alert(`Claim created successfully!`);
+      if (!res.ok) {
+        const errData = await res.json();
+        console.error("Error details:", errData);
+        throw new Error("Failed to create claim");
+      }
 
-      setForm({
-        provider_id: "",
-        risk_id: "",
-        status: "To Do",
-        submission_date: "",
-        summary: "",
-      });
+      await res.json();
+      alert("Claim created successfully!");
+      navigate("/claims");
     } catch (err) {
       alert(err.message);
     }
   };
 
-  // Redirect to Upload Document page
-  const goToUpload = () => {
-    if (createdClaimId) {
-      navigate(`/upload-document/${createdClaimId}`);
-    }
-  };
-
   return (
-    <div>
-      <h2 style={{ textAlign: "center" }}>Add Claim</h2>
-      <AddClaimForm
-        form={form}
-        onChange={handleChange}
-        onSubmit={handleSubmit}
-        providers={providers}
-        risks={risks}
-      />
-      {createdClaimId && (
-        <button
-          onClick={goToUpload}
-          style={{
-            marginTop: "1rem",
-            padding: "10px 20px",
-            backgroundColor: "#4caf50",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          Upload Documents for this Claim
-        </button>
-      )}
-    </div>
+    <AddClaimForm
+      onChange={handleChange}
+      onSelectPatient={handleSelectPatient}
+      onSelectProvider={handleSelectProvider}
+      onSubmit={handleSubmit}  // pass form data from child
+      patients={patients}
+      providers={providers}
+    />
   );
 }
 
-// UploadDocumentPage with optional claimId param from URL
-function UploadDocumentPage() {
-  const { claimId } = useParams();
-  return <UploadDocument claimId={claimId || null} />;
-}
-
-// ClaimsPage fetches providers and claims, enriches claims, then passes to ClaimList
 function ClaimsPage() {
   const [claims, setClaims] = useState([]);
-  const [providers, setProviders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  // Hardcoded risks array (same as AddClaimPage)
-  const risks = [
-    { risk_id: "1084bc4d-dd50-4eb4-a7da-591dc0f9bd76", name: "Low Risk" },
-    { risk_id: "7fbb4e86-f09a-4766-a9f5-3442d6142ec1", name: "Medium Risk" },
-    { risk_id: "8e5d5889-bb99-4dce-be13-d5566637ce70", name: "High Risk" },
-  ];
 
   useEffect(() => {
-    Promise.all([
-      fetch(`${API_BASE}/providers/`).then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch providers");
-        return res.json();
-      }),
-      fetch(`${API_BASE}/claims/?skip=0&limit=100`).then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch claims");
-        return res.json();
-      }),
-    ])
-      .then(([providersData, claimsData]) => {
-        setProviders(providersData);
-
-        const enrichedClaims = claimsData.map((claim) => {
-          const provider = providersData.find(
-            (p) => p.provider_id === claim.provider_id
-          );
-          const risk = risks.find((r) => r.risk_id === claim.risk_id);
-
-          return {
-            ...claim,
-            providerName: provider
-              ? `${provider.first_name} ${provider.last_name}`
-              : "Unknown Provider",
-            riskName: risk ? risk.name : "Unknown Risk",
-          };
-        });
-
-        setClaims(enrichedClaims);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
+    fetch(`${API_BASE}/claims?skip=0&limit=100`)
+      .then((res) => res.json())
+      .then((data) => setClaims(Array.isArray(data) ? data : []))
+      .catch(() => setClaims([]));
   }, []);
 
-  if (loading) return <p>Loading claims...</p>;
-  if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
-
-  return (
-    <div>
-      <h2 style={{ textAlign: "center" }}>Claims List</h2>
-      <ClaimList claims={claims} providers={providers} risks={risks}/>
-    </div>
-  );
+  return <ClaimList claims={claims} />;
 }
 
 export default function App() {
@@ -195,24 +126,21 @@ export default function App() {
       <nav
         style={{
           padding: "10px",
-          borderBottom: "1px solid #ccc",
+          borderBottom: "2px solid #2980b9",
           marginBottom: "1rem",
+          backgroundColor: "#f0f4f7",
         }}
       >
-        <Link to="/" style={{ marginRight: "10px" }}>
-          Add Claim
+        <Link to="/" style={{ marginRight: "15px", fontWeight: "bold", color: "#2980b9" }}>
+          Create Claim
         </Link>
-        <Link to="/claims" style={{ marginRight: "10px" }}>
+        <Link to="/claims" style={{ fontWeight: "bold", color: "#2980b9" }}>
           List Claims
         </Link>
-        <Link to="/upload-document">Upload Documents</Link>
       </nav>
-
       <Routes>
         <Route path="/" element={<AddClaimPage />} />
         <Route path="/claims" element={<ClaimsPage />} />
-        <Route path="/upload-document" element={<UploadDocumentPage />} />
-        <Route path="/upload-document/:claimId" element={<UploadDocumentPage />} />
       </Routes>
     </Router>
   );

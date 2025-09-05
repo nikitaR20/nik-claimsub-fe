@@ -1,223 +1,107 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 
-export default function ClaimList({ claims, providers, risks }) {
-  const [filterProvider, setFilterProvider] = useState("");
-  const [filterRisk, setFilterRisk] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
-  const [providerSearch, setProviderSearch] = useState("");
-  const [filterSubmissionDate, setFilterSubmissionDate] = useState("");
-  const [filterSummary, setFilterSummary] = useState("");
+export default function ClaimList({ claims }) {
+  const navigate = useNavigate();
 
-  const filteredProviders = providers.filter((p) => {
-    const fullName = `${p.first_name} ${p.last_name}`;
-    return fullName.toLowerCase().includes(providerSearch.toLowerCase());
+  const [filters, setFilters] = useState({
+    patient: "",
+    provider: "",
+    status: "",
   });
 
-  const filteredClaims = claims.filter((claim) => {
-    const matchProvider = !filterProvider || claim.providerName === filterProvider;
-    const matchRisk = !filterRisk || claim.riskName === filterRisk;
-    const matchStatus = !filterStatus || claim.status === filterStatus;
-    const matchDate = !filterSubmissionDate || claim.submission_date === filterSubmissionDate;
-    const matchSummary = !filterSummary || (claim.summary && claim.summary.toLowerCase().includes(filterSummary.toLowerCase()));
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters((prev) => ({ ...prev, [name]: value }));
+  };
 
-    return matchProvider && matchRisk && matchStatus && matchDate && matchSummary;
-  });
+  const filteredClaims = useMemo(() => {
+    return claims.filter((c) => {
+      const patientName = `${c.patient?.first_name ?? ""} ${c.patient?.last_name ?? ""}`.toLowerCase();
+      const providerName = `${c.provider?.first_name ?? ""} ${c.provider?.last_name ?? ""}`.toLowerCase();
+      return (
+        patientName.includes(filters.patient.toLowerCase()) &&
+        providerName.includes(filters.provider.toLowerCase()) &&
+        c.claim_status?.toLowerCase().includes(filters.status.toLowerCase())
+      );
+    });
+  }, [claims, filters]);
 
-  if (!claims || claims.length === 0)
-    return <p>No claims added yet.</p>;
+  if (!claims || claims.length === 0) return <p>No claims found.</p>;
 
   return (
-    <div style={{ maxWidth: "100vw", padding: "1rem" }}>
-      <h3 className="text-xl font-semibold mb-4">Filters</h3>
+    <div style={{ padding: "20px" }}>
+      <h2 style={{ marginBottom: "16px" }}>Claims</h2>
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          flexWrap: "nowrap",
-          overflowX: "auto",
-          gap: "1rem",
-          border: "1px solid #ccc",
-          borderRadius: "6px",
-          padding: "1rem",
-          backgroundColor: "white",
-          alignItems: "flex-start",
-          width: "100%",
-        }}
-      >
-        {/* Provider Filter */}
-        <div style={{ minWidth: 220, border: "1px solid #ccc", borderRadius: 6, padding: "0.5rem" }}>
-          <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "600" }}>
-            Provider
-          </label>
-          <input
-            type="text"
-            placeholder="Type to search provider"
-            value={providerSearch}
-            onChange={(e) => setProviderSearch(e.target.value)}
-            style={{
-              width: "100%",
-              border: "1px solid #999",
-              borderRadius: 4,
-              padding: "0.5rem",
-              marginBottom: "0.5rem",
-              outline: "none",
-            }}
-          />
-          <select
-            value={filterProvider}
-            onChange={(e) => setFilterProvider(e.target.value)}
-            size={Math.min(filteredProviders.length + 1, 6)}
-            style={{
-              width: "100%",
-              border: "1px solid #999",
-              borderRadius: 4,
-              padding: "0.5rem",
-              outline: "none",
-            }}
-          >
-            <option value="">All Providers</option>
-            {filteredProviders.map((p) => {
-              const fullName = `${p.first_name} ${p.last_name}`;
-              return (
-                <option key={p.provider_id} value={fullName}>
-                  {fullName}
-                </option>
-              );
-            })}
-          </select>
-        </div>
-
-        {/* Risk Filter */}
-        <div style={{ minWidth: 180, border: "1px solid #ccc", borderRadius: 6, padding: "0.5rem" }}>
-          <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "600" }}>
-            Risk
-          </label>
-          <select
-            value={filterRisk}
-            onChange={(e) => setFilterRisk(e.target.value)}
-            style={{
-              width: "100%",
-              border: "1px solid #999",
-              borderRadius: 4,
-              padding: "0.5rem",
-              outline: "none",
-            }}
-          >
-            <option value="">All Risks</option>
-            {risks.map((r) => (
-              <option key={r.risk_id} value={r.name}>
-                {r.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Status Filter */}
-        <div style={{ minWidth: 180, border: "1px solid #ccc", borderRadius: 6, padding: "0.5rem" }}>
-          <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "600" }}>
-            Status
-          </label>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            style={{
-              width: "100%",
-              border: "1px solid #999",
-              borderRadius: 4,
-              padding: "0.5rem",
-              outline: "none",
-            }}
-          >
-            <option value="">All Statuses</option>
-            <option value="To Do">To Do</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Approved">Approved</option>
-            <option value="Denied">Denied</option>
-          </select>
-        </div>
-
-        {/* Submission Date Filter */}
-        <div style={{ minWidth: 180, border: "1px solid #ccc", borderRadius: 6, padding: "0.5rem" }}>
-          <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "600" }}>
-            Submission Date
-          </label>
-          <input
-            type="date"
-            value={filterSubmissionDate}
-            onChange={(e) => setFilterSubmissionDate(e.target.value)}
-            style={{
-              width: "100%",
-              border: "1px solid #999",
-              borderRadius: 4,
-              padding: "0.5rem",
-              outline: "none",
-            }}
-          />
-        </div>
-
-        {/* Summary Filter */}
-        <div style={{ minWidth: 180, border: "1px solid #ccc", borderRadius: 6, padding: "0.5rem" }}>
-          <label style={{ display: "block", marginBottom: "0.25rem", fontWeight: "600" }}>
-            Summary
-          </label>
-          <input
-            type="text"
-            placeholder="Search summary"
-            value={filterSummary}
-            onChange={(e) => setFilterSummary(e.target.value)}
-            style={{
-              width: "100%",
-              border: "1px solid #999",
-              borderRadius: 4,
-              padding: "0.5rem",
-              outline: "none",
-            }}
-          />
-        </div>
+      {/* Filters */}
+      <div style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
+        <input
+          type="text"
+          name="patient"
+          value={filters.patient}
+          onChange={handleFilterChange}
+          placeholder="Filter by Patient"
+          style={{ padding: "6px 10px", borderRadius: "8px", border: "1px solid #ccc" }}
+        />
+        <input
+          type="text"
+          name="provider"
+          value={filters.provider}
+          onChange={handleFilterChange}
+          placeholder="Filter by Provider"
+          style={{ padding: "6px 10px", borderRadius: "8px", border: "1px solid #ccc" }}
+        />
+        <input
+          type="text"
+          name="status"
+          value={filters.status}
+          onChange={handleFilterChange}
+          placeholder="Filter by Status"
+          style={{ padding: "6px 10px", borderRadius: "8px", border: "1px solid #ccc" }}
+        />
       </div>
 
-      {/* Claims Table */}
-      <table
-        style={{
-          width: "100%",
-          borderCollapse: "collapse",
-          marginTop: "1rem",
-          overflowX: "auto",
-          display: "block",
-        }}
-      >
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ backgroundColor: "#f3f4f6" }}>
-            <th style={{ padding: "12px", border: "1px solid #ddd", textAlign: "left", wordBreak: "break-word" }}>
-              Claim ID
-            </th>
-            <th style={{ padding: "12px", border: "1px solid #ddd", textAlign: "left" }}>Provider</th>
-            <th style={{ padding: "12px", border: "1px solid #ddd", textAlign: "left" }}>Risk</th>
-            <th style={{ padding: "12px", border: "1px solid #ddd", textAlign: "left" }}>Status</th>
-            <th style={{ padding: "12px", border: "1px solid #ddd", textAlign: "left" }}>Submission Date</th>
-            <th style={{ padding: "12px", border: "1px solid #ddd", textAlign: "left" }}>Summary</th>
+            <th style={{ padding: "8px", border: "1px solid #ddd" }}>#</th>
+            <th style={{ padding: "8px", border: "1px solid #ddd" }}>Patient</th>
+            <th style={{ padding: "8px", border: "1px solid #ddd" }}>Provider</th>
+            <th style={{ padding: "8px", border: "1px solid #ddd" }}>Status</th>
+            <th style={{ padding: "8px", border: "1px solid #ddd" }}>Claim Date</th>
+            <th style={{ padding: "8px", border: "1px solid #ddd" }}>Coverage Notes</th>
           </tr>
         </thead>
         <tbody>
-          {filteredClaims.length === 0 ? (
-            <tr>
-              <td colSpan="6" style={{ padding: "16px", textAlign: "center", color: "#777" }}>
-                No claims match the filter criteria.
-              </td>
-            </tr>
-          ) : (
-            filteredClaims.map((claim) => (
-              <tr key={claim.claim_id} style={{ cursor: "default", backgroundColor: "#fff" }}>
-                <td style={{ padding: "12px", border: "1px solid #ddd", wordBreak: "break-word" }}>{claim.claim_id}</td>
-                <td style={{ padding: "12px", border: "1px solid #ddd" }}>{claim.providerName}</td>
-                <td style={{ padding: "12px", border: "1px solid #ddd" }}>{claim.riskName}</td>
-                <td style={{ padding: "12px", border: "1px solid #ddd" }}>{claim.status}</td>
-                <td style={{ padding: "12px", border: "1px solid #ddd" }}>{claim.submission_date}</td>
-                <td style={{ padding: "12px", border: "1px solid #ddd" }}>{claim.summary || "-"}</td>
+          {filteredClaims.map((c, idx) => {
+            const patientName = `${c.patient?.first_name ?? ""} ${c.patient?.last_name ?? ""}`;
+            const providerName = `${c.provider?.first_name ?? ""} ${c.provider?.last_name ?? ""}`;
+            return (
+              <tr
+                key={c.claim_id}
+                style={{ cursor: "pointer" }}
+                onClick={() =>
+                  navigate("/", { state: { claim: c } }) // passes claim data to Create Claim page
+                }
+                title={c.coverage_notes || "No coverage notes"}
+              >
+                <td style={{ padding: "8px", border: "1px solid #ddd", color: "#4f46e5", fontWeight: 600 }}>
+                  {idx + 1}
+                </td>
+                <td style={{ padding: "8px", border: "1px solid #ddd" }}>{patientName}</td>
+                <td style={{ padding: "8px", border: "1px solid #ddd" }}>{providerName}</td>
+                <td style={{ padding: "8px", border: "1px solid #ddd" }}>{c.claim_status || "Pending"}</td>
+                <td style={{ padding: "8px", border: "1px solid #ddd" }}>
+                  {c.claim_date ? new Date(c.claim_date).toLocaleDateString() : ""}
+                </td>
+                <td style={{ padding: "8px", border: "1px solid #ddd" }}>
+                  {c.coverage_notes?.length > 30
+                    ? c.coverage_notes.substring(0, 30) + "..."
+                    : c.coverage_notes}
+                </td>
               </tr>
-            ))
-          )}
+            );
+          })}
         </tbody>
       </table>
     </div>

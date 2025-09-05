@@ -1,0 +1,59 @@
+.claim-form-container {
+  max-width: 700px;
+  margin: 20px auto;
+  padding: 20px;
+  background-color: #f5f7fa;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  font-family: Arial, sans-serif;
+}
+
+.claim-form h2 {
+  text-align: center;
+  color: #2c3e50;
+  margin-bottom: 20px;
+}
+
+.claim-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.claim-form input,
+.claim-form select,
+.claim-form textarea {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.claim-form textarea {
+  resize: vertical;
+}
+
+.patient-details,
+.provider-details {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.claim-form label {
+  font-weight: bold;
+  color: #34495e;
+}
+
+.submit-btn {
+  background-color: #2980b9;
+  color: white;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.submit-btn:hover {
+  background-color: #1c5980;
+}

@@ -1,157 +1,295 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 
-export default function AddClaimForm({ form, onChange, onSubmit, providers, risks }) {
+export default function AddClaimForm({
+  onChange,
+  onSelectPatient,
+  onSelectProvider,
+  onSubmit,
+  patients,
+  providers,
+}) {
+  const safePatients = useMemo(() => (Array.isArray(patients) ? patients : []), [patients]);
+  const safeProviders = useMemo(() => (Array.isArray(providers) ? providers : []), [providers]);
+
+  const [form, setForm] = useState({
+    patient_id: "",
+    patient_age: "",
+    patient_gender: "",
+    patient_income: "",
+    patient_marital_status: "",
+    patient_employment_status: "",
+    provider_id: "",
+    provider_specialty: "",
+    provider_location: "",
+    coverage_notes: "",
+    claim_date:"",
+    claim_amount:"",
+    claim_status:"",
+    claim_type: "",
+    claim_submission_method: "",
+    diagnosis_code: "",
+    procedure_code: "",
+    suggested_diagnosis_code: "",
+    suggested_procedure_code: "",
+    approval_probability: 0,
+    fraud_flag: false,
+    fraud_reason: ""
+  });
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : name === "approval_probability" ? Number(value) : value,
+    }));
+  };
+
+  const handleSelectPatient = (e) => {
+    const patientId = e.target.value;
+    const selected = safePatients.find((p) => String(p.patient_id) === String(patientId));
+    if (selected) {
+      setForm((prev) => ({
+        ...prev,
+        patient_id: selected.patient_id ?? "",
+        patient_age: selected.patient_age ?? "",
+        patient_gender: selected.patient_gender ?? "",
+        patient_income: selected.patient_income ?? "",
+        patient_marital_status: selected.patient_marital_status ?? "",
+        patient_employment_status: selected.patient_employment_status ?? "",
+      }));
+    } else {
+      setForm((prev) => ({
+        ...prev,
+        patient_id: "",
+        patient_age: "",
+        patient_gender: "",
+        patient_income: "",
+        patient_marital_status: "",
+        patient_employment_status: "",
+      }));
+    }
+  };
+
+  const handleSelectProvider = (e) => {
+    const providerId = e.target.value;
+    const selected = safeProviders.find((p) => String(p.provider_id) === String(providerId));
+    if (selected) {
+      setForm((prev) => ({
+        ...prev,
+        provider_id: selected.provider_id ?? "",
+        provider_specialty: selected.specialty ?? selected.provider_specialty ?? "",
+        provider_location: selected.location ?? selected.provider_location ?? "",
+      }));
+    } else {
+      setForm((prev) => ({
+        ...prev,
+        provider_id: "",
+        provider_specialty: "",
+        provider_location: "",
+      }));
+    }
+  };
+
+  const handleSubmit = (e) => {
+    console.log("Event object received in child:", e);
+    if (e && typeof e.preventDefault === "function") {
+      e.preventDefault();
+    }
+    onSubmit?.(form);
+  };
+
   return (
-    <form
-      onSubmit={onSubmit}
-      style={{
-        maxWidth: "600px",
-        margin: "2rem auto",
-        padding: "1.5rem",
-        backgroundColor: "#fff",
-        borderRadius: "6px",
-        boxShadow: "0 1px 6px rgba(0,0,0,0.1)",
-      }}
-    >
-      <h2 style={{ marginBottom: "1rem", fontWeight: "600", color: "#333" }}>
-        Add New Claim
-      </h2>
+    <div className="app-wrap">
+      <style>{`
+        .app-wrap { min-height: 100dvh; display: flex; align-items: center; justify-content: center; background: #f8fafc; padding: 24px; }
+        .card { width: 100%; max-width: 980px; background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; box-shadow: 0 10px 24px rgba(2,6,23,0.07); padding: 32px; }
+        .title { text-align: center; font-size: 28px; font-weight: 800; color: #4f46e5; margin: 0 0 24px; }
+        .section { margin: 20px 0; }
+        .label { display: block; font-weight: 600; color: #374151; margin-bottom: 8px; }
+        .grid { display: grid; gap: 16px; }
+        .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        @media (max-width: 900px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+        .input, .select, .textarea { width: 100%; border: 1px solid #d1d5db; border-radius: 10px; padding: 10px 12px; font-size: 14px; line-height: 1.4; outline: none; }
+        .textarea { min-height: 90px; resize: vertical; }
+        .input[readonly] { background: #f3f4f6; color: #4b5563; }
+        .input:focus, .select:focus, .textarea:focus { border-color: #818cf8; box-shadow: 0 0 0 3px rgba(99,102,241,0.25); }
+        .range-wrap { display: grid; gap: 8px; }
+        .range { width: 100%; }
+        .muted { color: #4b5563; font-weight: 600; text-align: right; }
+        .row { display: flex; gap: 10px; align-items: center; }
+        .btn { appearance: none; border: none; border-radius: 10px; padding: 10px 18px; background: #4f46e5; color: white; font-weight: 700; cursor: pointer; transition: transform .02s ease, box-shadow .2s ease, background .2s ease; }
+        .btn:hover { background: #4338ca; }
+        .btn:active { transform: translateY(1px); }
+        .footer { display: flex; justify-content: center; margin-top: 12px; }
+        .helper { font-size: 12px; color: #6b7280; margin-top: 6px; }
+      `}</style>
 
-      <div style={{ marginBottom: "1.25rem" }}>
-        <label style={{ display: "block", marginBottom: "0.4rem", fontWeight: "600" }}>
-          Provider <span style={{ color: "red" }}>*</span>
-        </label>
-        <select
-          name="provider_id"
-          value={form.provider_id || ""}
-          onChange={onChange}
-          required
-          style={{
-            width: "100%",
-            padding: "0.6rem 0.8rem",
-            borderRadius: "4px",
-            border: "1px solid #ccc",
-            fontSize: "1rem",
-          }}
-        >
-          <option value="">Select Provider</option>
-          {providers.map((p) => (
-            <option key={p.provider_id} value={p.provider_id}>
-              {p.first_name} {p.last_name}
-            </option>
-          ))}
-        </select>
+      <div className="card">
+        <h2 className="title">Create Claim</h2>
+        <form onSubmit={handleSubmit}>
+          {/* Patient */}
+          <div className="section">
+            <label className="label">Patient</label>
+            <select
+              name="patient_id"
+              value={form.patient_id}
+              onChange={handleSelectPatient}
+              className="select"
+            >
+              <option value="">Select patient</option>
+              {safePatients.map((p) => (
+                <option key={String(p.patient_id)} value={String(p.patient_id)}>
+                  {(p.first_name ?? "").trim()} {(p.last_name ?? "").trim()}
+                </option>
+              ))}
+            </select>
+            {safePatients.length === 0 && (
+              <div className="helper">No patients loaded. Ensure your API returns an array.</div>
+            )}
+          </div>
+
+          {/* Auto-populated Patient details */}
+          <div className="section grid grid-3">
+            <input type="text" value={form.patient_age} readOnly placeholder="Age" className="input" />
+            <input type="text" value={form.patient_gender} readOnly placeholder="Gender" className="input" />
+            <input type="text" value={form.patient_income} readOnly placeholder="Income" className="input" />
+            <input type="text" value={form.patient_marital_status} readOnly placeholder="Marital Status" className="input" />
+            <input type="text" value={form.patient_employment_status} readOnly placeholder="Employment Status" className="input" />
+          </div>
+
+          {/* Provider */}
+          <div className="section">
+            <label className="label">Provider</label>
+            <select
+              name="provider_id"
+              value={form.provider_id}
+              onChange={handleSelectProvider}
+              className="select"
+            >
+              <option value="">Select provider</option>
+              {safeProviders.map((p) => (
+                <option key={String(p.provider_id)} value={String(p.provider_id)}>
+                  {(p.first_name ?? "").trim()} {(p.last_name ?? "").trim()} {p.specialty ? `- ${p.specialty}` : ""} {p.location ? `- ${p.location}` : ""}
+                </option>
+              ))}
+            </select>
+            {safeProviders.length === 0 && (
+              <div className="helper">No providers loaded. Ensure your API returns an array.</div>
+            )}
+          </div>
+
+          {/* Provider details */}
+          <div className="section grid grid-2">
+            <input type="text" value={form.provider_specialty} readOnly placeholder="Provider Specialty" className="input" />
+            <input type="text" value={form.provider_location} readOnly placeholder="Provider_location" className="input" />
+          </div>
+
+          {/* Coverage Notes */}
+          <div className="section">
+            <label className="label">Coverage Notes</label>
+            <textarea name="coverage_notes" value={form.coverage_notes} onChange={handleChange} className="textarea" />
+          </div>
+
+          {/* Claim Type & Submission Method */}
+          <div className="section grid grid-2">
+            <div>
+              <label className="label">Claim Amount</label>
+              <input
+                type="number"
+                step="0.01"
+                name="claim_amount"
+                value={form.claim_amount}
+                onChange={handleChange}
+                className="input"
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <label className="label">Claim Date</label>
+              <input
+                  type="date"
+                  name="claim_date"
+                  value={form.claim_date}
+                  onChange={handleChange}
+                  className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Claim Status</label>
+              <select
+                name="claim_status"
+                value={form.claim_status}
+                onChange={handleChange}
+                className="select"
+              >
+                <option value="">Select Status</option>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Denied">Denied</option>
+                <option value="In Review">In Review</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="section grid grid-2">
+            <div>
+              <label className="label">Claim Type</label>
+              <select name="claim_type" value={form.claim_type} onChange={handleChange} className="select">
+                <option value="">Select Type</option>
+                <option value="Inpatient">Inpatient</option>
+                <option value="Outpatient">Outpatient</option>
+                <option value="Pharmacy">Pharmacy</option>
+                <option value="Emergency">Emergency</option>
+                <option value="Dental">Dental</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Submission Method</label>
+              <select name="claim_submission_method" value={form.claim_submission_method} onChange={handleChange} className="select">
+                <option value="">Select Method</option>
+                <option value="Electronic">Electronic (EDI)</option>
+                <option value="Paper">Paper</option>
+                <option value="Portal">Portal Upload</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Codes */}
+          <div className="section grid grid-4">
+            <input type="text" name="diagnosis_code" value={form.diagnosis_code} onChange={handleChange} placeholder="Diagnosis Code" className="input" />
+            <input type="text" name="procedure_code" value={form.procedure_code} onChange={handleChange} placeholder="Procedure Code" className="input" />
+            <input type="text" name="suggested_diagnosis_code" value={form.suggested_diagnosis_code} onChange={handleChange} placeholder="Suggested Dx Code" className="input" />
+            <input type="text" name="suggested_procedure_code" value={form.suggested_procedure_code} onChange={handleChange} placeholder="Suggested Proc Code" className="input" />
+          </div>
+
+          {/* Approval Probability */}
+          <div className="section range-wrap">
+            <label className="label">Approval Probability</label>
+            <input type="range" name="approval_probability" value={Number(form.approval_probability) || 0} onChange={handleChange} min="0" max="100" className="range" />
+            <div className="muted">{Number(form.approval_probability) || 0}%</div>
+          </div>
+
+          {/* Fraud */}
+          <div className="section">
+            <label className="label">Fraud</label>
+            <div className="row">
+              <input type="checkbox" name="fraud_flag" checked={!!form.fraud_flag} onChange={handleChange} />
+              <span>Flag as potential fraud</span>
+            </div>
+          </div>
+
+          <div className="section">
+            <label className="label">Fraud Reason</label>
+            <input type="text" name="fraud_reason" value={form.fraud_reason} onChange={handleChange} className="input" placeholder="Reason (optional)" />
+          </div>
+
+          <div className="footer">
+            <button type="submit" className="btn">Submit</button>
+          </div>
+        </form>
       </div>
-
-      <div style={{ marginBottom: "1.25rem" }}>
-        <label style={{ display: "block", marginBottom: "0.4rem", fontWeight: "600" }}>
-          Risk
-        </label>
-        <select
-          name="risk_id"
-          value={form.risk_id || ""}
-          onChange={onChange}
-          style={{
-            width: "100%",
-            padding: "0.6rem 0.8rem",
-            borderRadius: "4px",
-            border: "1px solid #ccc",
-            fontSize: "1rem",
-          }}
-        >
-          <option value="">Select Risk</option>
-          {risks.map((r) => (
-            <option key={r.risk_id} value={r.risk_id}>
-              {r.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div style={{ marginBottom: "1.25rem" }}>
-        <label style={{ display: "block", marginBottom: "0.4rem", fontWeight: "600" }}>
-          Status <span style={{ color: "red" }}>*</span>
-        </label>
-        <select
-          name="status"
-          value={form.status || "To Do"}
-          onChange={onChange}
-          required
-          style={{
-            width: "100%",
-            padding: "0.6rem 0.8rem",
-            borderRadius: "4px",
-            border: "1px solid #ccc",
-            fontSize: "1rem",
-          }}
-        >
-          <option value="To Do">To Do</option>
-          <option value="In Progress">In Progress</option>
-          <option value="Approved">Approved</option>
-          <option value="Denied">Denied</option>
-        </select>
-      </div>
-
-      <div style={{ marginBottom: "1.25rem" }}>
-        <label style={{ display: "block", marginBottom: "0.4rem", fontWeight: "600" }}>
-          Submission Date <span style={{ color: "red" }}>*</span>
-        </label>
-        <input
-          type="date"
-          name="submission_date"
-          value={form.submission_date || ""}
-          onChange={onChange}
-          required
-          style={{
-            width: "100%",
-            padding: "0.6rem 0.8rem",
-            borderRadius: "4px",
-            border: "1px solid #ccc",
-            fontSize: "1rem",
-          }}
-        />
-      </div>
-
-      <div style={{ marginBottom: "1.5rem" }}>
-        <label style={{ display: "block", marginBottom: "0.4rem", fontWeight: "600" }}>
-          Summary
-        </label>
-        <textarea
-          name="summary"
-          value={form.summary || ""}
-          onChange={onChange}
-          rows={4}
-          style={{
-            width: "100%",
-            padding: "0.6rem 0.8rem",
-            borderRadius: "4px",
-            border: "1px solid #ccc",
-            fontSize: "1rem",
-            resize: "vertical",
-          }}
-        />
-      </div>
-
-      <button
-        type="submit"
-        style={{
-          width: "100%",
-          padding: "12px 0",
-          backgroundColor: "#4caf50",
-          color: "#fff",
-          fontSize: "1.1rem",
-          fontWeight: "600",
-          borderRadius: "6px",
-          border: "none",
-          cursor: "pointer",
-          boxShadow: "0 3px 8px rgba(76, 175, 80, 0.6)",
-          transition: "background-color 0.3s ease",
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#388e3c")}
-        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#4caf50")}
-      >
-        Submit
-      </button>
-    </form>
+    </div>
   );
 }
