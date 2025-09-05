@@ -72,7 +72,7 @@ function AddClaimPage() {
     setForm({ ...form, provider_id: e.target.value });
   };
 
-  // ✅ Updated: parent now receives formData instead of event
+  // ✅ Updated alert for create vs update
   const handleSubmit = async (formData) => {
     try {
       const res = await fetch(`${API_BASE}/claims/`, {
@@ -84,11 +84,15 @@ function AddClaimPage() {
       if (!res.ok) {
         const errData = await res.json();
         console.error("Error details:", errData);
-        throw new Error("Failed to create claim");
+        throw new Error("Failed to save claim");
       }
 
       await res.json();
-      alert("Claim created successfully!");
+      if (formData.claim_id) {
+        alert("Claim updated successfully!");
+      } else {
+        alert("Claim created successfully!");
+      }
       navigate("/claims");
     } catch (err) {
       alert(err.message);

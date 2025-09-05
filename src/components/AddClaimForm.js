@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 
 export default function AddClaimForm({
   onChange,
@@ -8,10 +9,13 @@ export default function AddClaimForm({
   patients,
   providers,
 }) {
+  const location = useLocation();
+
   const safePatients = useMemo(() => (Array.isArray(patients) ? patients : []), [patients]);
   const safeProviders = useMemo(() => (Array.isArray(providers) ? providers : []), [providers]);
 
   const [form, setForm] = useState({
+    claim_id: "", // Added for edit mode detection
     patient_id: "",
     patient_age: "",
     patient_gender: "",
@@ -22,9 +26,9 @@ export default function AddClaimForm({
     provider_specialty: "",
     provider_location: "",
     coverage_notes: "",
-    claim_date:"",
-    claim_amount:"",
-    claim_status:"",
+    claim_date: "",
+    claim_amount: "",
+    claim_status: "",
     claim_type: "",
     claim_submission_method: "",
     diagnosis_code: "",
@@ -33,8 +37,23 @@ export default function AddClaimForm({
     suggested_procedure_code: "",
     approval_probability: 0,
     fraud_flag: false,
-    fraud_reason: ""
+    fraud_reason: "",
+    predicted_payout: 0
   });
+
+  // Autofill form if navigating from ClaimList click
+  useEffect(() => {
+    if (location.state?.initialData) {
+      const data = { ...location.state.initialData };
+
+      // Convert claim_date to YYYY-MM-DD format for date input
+      if (data.claim_date) {
+        data.claim_date = new Date(data.claim_date).toISOString().split("T")[0];
+      }
+
+      setForm(data); // includes claim_id if editing
+    }
+  }, [location.state]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -91,11 +110,24 @@ export default function AddClaimForm({
   };
 
   const handleSubmit = (e) => {
-    console.log("Event object received in child:", e);
     if (e && typeof e.preventDefault === "function") {
       e.preventDefault();
     }
-    onSubmit?.(form);
+
+    const payload = {
+      ...form,
+      claim_id: form.claim_id || null,
+      claim_date: form.claim_date ? new Date(form.claim_date).toISOString().split("T")[0] : null,
+      claim_amount: Number(form.claim_amount) || 0,
+      approval_probability: Number(form.approval_probability) || 0,
+      predicted_payout: Number(form.predicted_payout) || 0,
+    };
+
+    if (form.claim_id) {
+      onSubmit?.({ ...payload, mode: "update" });
+    } else {
+      onSubmit?.({ ...payload, mode: "create" });
+    }
   };
 
   return (
@@ -127,7 +159,7 @@ export default function AddClaimForm({
       `}</style>
 
       <div className="card">
-        <h2 className="title">Create Claim</h2>
+        <h2 className="title">{form.claim_id ? "Edit Claim" : "Create Claim"}</h2>
         <form onSubmit={handleSubmit}>
           {/* Patient */}
           <div className="section">
@@ -192,7 +224,7 @@ export default function AddClaimForm({
             <textarea name="coverage_notes" value={form.coverage_notes} onChange={handleChange} className="textarea" />
           </div>
 
-          {/* Claim Type & Submission Method */}
+          {/* Claim Amount, Date, Status */}
           <div className="section grid grid-2">
             <div>
               <label className="label">Claim Amount</label>
@@ -233,6 +265,7 @@ export default function AddClaimForm({
             </div>
           </div>
 
+          {/* Claim Type & Submission Method */}
           <div className="section grid grid-2">
             <div>
               <label className="label">Claim Type</label>
@@ -267,22 +300,51 @@ export default function AddClaimForm({
           {/* Approval Probability */}
           <div className="section range-wrap">
             <label className="label">Approval Probability</label>
-            <input type="range" name="approval_probability" value={Number(form.approval_probability) || 0} onChange={handleChange} min="0" max="100" className="range" />
+            <input
+              type="range"
+              name="approval_probability"
+              value={Number(form.approval_probability) || 0}
+              onChange={handleChange}
+              min="0"
+              max="100"
+              className="range"
+            />
             <div className="muted">{Number(form.approval_probability) || 0}%</div>
+            <input
+              type="text"
+              name="predicted_payout"
+              value={form.predicted_payout}
+              readOnly
+              onChange={handleChange}
+              placeholder="Predicted Payout"
+              className="input"
+            />
           </div>
 
           {/* Fraud */}
           <div className="section">
             <label className="label">Fraud</label>
             <div className="row">
-              <input type="checkbox" name="fraud_flag" checked={!!form.fraud_flag} onChange={handleChange} />
+              <input
+                type="checkbox"
+                name="fraud_flag"
+                checked={!!form.fraud_flag}
+                onChange={handleChange}
+              />
               <span>Flag as potential fraud</span>
             </div>
           </div>
 
           <div className="section">
             <label className="label">Fraud Reason</label>
-            <input type="text" name="fraud_reason" value={form.fraud_reason} onChange={handleChange} className="input" placeholder="Reason (optional)" />
+            <input
+              type="text"
+              name="fraud_reason"
+              value={form.fraud_reason}
+              onChange={handleChange}
+              className="input"
+              placeholder="Reason (optional)"
+            />
           </div>
 
           <div className="footer">
@@ -293,3 +355,4 @@ export default function AddClaimForm({
     </div>
   );
 }
+
