@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import UploadDocument from "./UploadDocument";
+import { API_BASE } from "../App"; // adjust path if needed
 
 export default function AddClaimForm({
   onChange,
@@ -15,7 +17,7 @@ export default function AddClaimForm({
   const safeProviders = useMemo(() => (Array.isArray(providers) ? providers : []), [providers]);
 
   const [form, setForm] = useState({
-    claim_id: "", // Added for edit mode detection
+    claim_id: "",
     patient_id: "",
     patient_age: "",
     patient_gender: "",
@@ -38,20 +40,18 @@ export default function AddClaimForm({
     approval_probability: 0,
     fraud_flag: false,
     fraud_reason: "",
-    predicted_payout: 0
+    predicted_payout: 0,
   });
 
-  // Autofill form if navigating from ClaimList click
+  const [suggestions, setSuggestions] = useState(null); // <-- store suggested codes
+
   useEffect(() => {
     if (location.state?.initialData) {
       const data = { ...location.state.initialData };
-
-      // Convert claim_date to YYYY-MM-DD format for date input
       if (data.claim_date) {
         data.claim_date = new Date(data.claim_date).toISOString().split("T")[0];
       }
-
-      setForm(data); // includes claim_id if editing
+      setForm(data);
     }
   }, [location.state]);
 
@@ -109,7 +109,7 @@ export default function AddClaimForm({
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     if (e && typeof e.preventDefault === "function") {
       e.preventDefault();
     }
@@ -123,10 +123,45 @@ export default function AddClaimForm({
       predicted_payout: Number(form.predicted_payout) || 0,
     };
 
-    if (form.claim_id) {
-      onSubmit?.({ ...payload, mode: "update" });
-    } else {
-      onSubmit?.({ ...payload, mode: "create" });
+    const mode = form.claim_id ? "update" : "create";
+    const result = await onSubmit?.({ ...payload, mode });
+
+    // ✅ Fix: Set claim_id immediately after creating new claim
+    if (mode === "create" && result?.claim_id) {
+      setForm(prev => ({ ...prev, claim_id: result.claim_id }));
+    }
+  };
+
+  const handleSuggestCodes = async () => {
+    if (!form.coverage_notes.trim()) {
+      alert("Please enter coverage notes first");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/ai/suggest_codes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ coverage_notes: form.coverage_notes }),
+      });
+
+      if (!res.ok) throw new Error("AI suggestion failed");
+
+      const data = await res.json();
+
+      // Save suggestions to state
+      setSuggestions(data);
+
+      // Auto-fill top suggestions into diagnosis_code and procedure_code fields
+      setForm(prev => ({
+        ...prev,
+        suggested_diagnosis_code: data.suggested_diagnosis_codes?.[0]?.code || "",
+        suggested_procedure_code: data.suggested_procedure_codes?.[0]?.code || "",
+        diagnosis_code: data.suggested_diagnosis_codes?.[0]?.code || prev.diagnosis_code,
+        procedure_code: data.suggested_procedure_codes?.[0]?.code || prev.procedure_code,
+      }));
+    } catch (err) {
+      alert(err.message);
     }
   };
 
@@ -161,7 +196,7 @@ export default function AddClaimForm({
       <div className="card">
         <h2 className="title">{form.claim_id ? "Edit Claim" : "Create Claim"}</h2>
         <form onSubmit={handleSubmit}>
-          {/* Patient */}
+          {/* Patient selection */}
           <div className="section">
             <label className="label">Patient</label>
             <select
@@ -177,9 +212,6 @@ export default function AddClaimForm({
                 </option>
               ))}
             </select>
-            {safePatients.length === 0 && (
-              <div className="helper">No patients loaded. Ensure your API returns an array.</div>
-            )}
           </div>
 
           {/* Auto-populated Patient details */}
@@ -191,7 +223,7 @@ export default function AddClaimForm({
             <input type="text" value={form.patient_employment_status} readOnly placeholder="Employment Status" className="input" />
           </div>
 
-          {/* Provider */}
+          {/* Provider selection */}
           <div className="section">
             <label className="label">Provider</label>
             <select
@@ -207,22 +239,54 @@ export default function AddClaimForm({
                 </option>
               ))}
             </select>
-            {safeProviders.length === 0 && (
-              <div className="helper">No providers loaded. Ensure your API returns an array.</div>
-            )}
           </div>
 
           {/* Provider details */}
           <div className="section grid grid-2">
             <input type="text" value={form.provider_specialty} readOnly placeholder="Provider Specialty" className="input" />
-            <input type="text" value={form.provider_location} readOnly placeholder="Provider_location" className="input" />
+            <input type="text" value={form.provider_location} readOnly placeholder="Provider Location" className="input" />
           </div>
 
           {/* Coverage Notes */}
           <div className="section">
             <label className="label">Coverage Notes</label>
             <textarea name="coverage_notes" value={form.coverage_notes} onChange={handleChange} className="textarea" />
+            <button
+              type="button"
+              className="btn"
+              style={{ marginTop: "8px" }}
+              onClick={handleSuggestCodes}
+            >
+              Suggest Codes
+            </button>
           </div>
+
+          {/* Show suggestions below */}
+          {suggestions && (
+            <div className="section">
+              <h4 className="label">AI Suggested Codes</h4>
+              <div>
+                <strong>Diagnosis Codes:</strong>
+                <ul>
+                  {suggestions.suggested_diagnosis_codes?.map((dx, idx) => (
+                    <li key={idx}>
+                      {dx.code} - {dx.description}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div style={{ marginTop: "8px" }}>
+                <strong>Procedure Codes:</strong>
+                <ul>
+                  {suggestions.suggested_procedure_codes?.map((proc, idx) => (
+                    <li key={idx}>
+                      {proc.code} - {proc.description}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
 
           {/* Claim Amount, Date, Status */}
           <div className="section grid grid-2">
@@ -241,11 +305,11 @@ export default function AddClaimForm({
             <div>
               <label className="label">Claim Date</label>
               <input
-                  type="date"
-                  name="claim_date"
-                  value={form.claim_date}
-                  onChange={handleChange}
-                  className="input"
+                type="date"
+                name="claim_date"
+                value={form.claim_date}
+                onChange={handleChange}
+                className="input"
               />
             </div>
             <div>
@@ -347,12 +411,24 @@ export default function AddClaimForm({
             />
           </div>
 
+          {/* Submit Button */}
           <div className="footer">
             <button type="submit" className="btn">Submit</button>
           </div>
         </form>
+
+        {/* Upload Documents */}
+        <div className="section">
+          <h3>Upload Documents</h3>
+          {form.claim_id ? (
+            <UploadDocument claimId={form.claim_id} />
+          ) : (
+            <p style={{ color: "#6b7280" }}>
+              You can upload documents after creating the claim.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
 }
-

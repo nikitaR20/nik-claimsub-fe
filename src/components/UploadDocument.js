@@ -1,5 +1,5 @@
 // src/components/UploadDocument.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
@@ -18,8 +18,8 @@ export default function UploadDocument({ claimId: initialClaimId }) {
   const [description, setDescription] = useState("");
   const [statusMsg, setStatusMsg] = useState("");
   const [documents, setDocuments] = useState([]);
+  const fileInputRef = useRef(null);
 
-  // Fetch documents whenever claimId changes and is not empty
   useEffect(() => {
     if (claimId) {
       fetchDocuments(claimId);
@@ -36,17 +36,19 @@ export default function UploadDocument({ claimId: initialClaimId }) {
       setDocuments(docs);
       setStatusMsg("");
     } catch (err) {
-      setStatusMsg(`Error fetching documents: ${err.message}`);
+      setStatusMsg(
+        "No documents found or unable to fetch documents for this claim."
+      );
       setDocuments([]);
     }
   };
 
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
-  };
+  const handleFileChange = (e) => setFile(e.target.files[0]);
 
   const handleUpload = async (e) => {
     e.preventDefault();
+
+    console.log("Uploading document:", { claimId, documentType, file, description });
 
     if (!claimId) {
       setStatusMsg("Please enter a claim ID.");
@@ -72,6 +74,7 @@ export default function UploadDocument({ claimId: initialClaimId }) {
         method: "POST",
         body: formData,
       });
+
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.detail || "Upload failed");
@@ -81,7 +84,8 @@ export default function UploadDocument({ claimId: initialClaimId }) {
       setDocumentType("");
       setFile(null);
       setDescription("");
-      // Refresh document list after upload
+      if (fileInputRef.current) fileInputRef.current.value = "";
+
       fetchDocuments(claimId);
     } catch (err) {
       setStatusMsg(`Error: ${err.message}`);
@@ -89,17 +93,25 @@ export default function UploadDocument({ claimId: initialClaimId }) {
   };
 
   return (
-    <div>
-      <h2>Upload Document for Claim: {claimId || "Please enter Claim ID"}</h2>
+    <div
+      style={{
+        marginTop: "1rem",
+        padding: "1rem",
+        border: "1px solid #e5e7eb",
+        borderRadius: "12px",
+        background: "#f9fafb",
+      }}
+    >
+      <h3>Upload Documents</h3>
+      {!claimId && <p style={{ color: "#6b7280" }}>You can upload documents after creating the claim.</p>}
 
-      {/* Show editable claimId input only if no initialClaimId */}
       {!initialClaimId && (
         <div style={{ marginBottom: "1rem" }}>
           <label>Claim ID:</label>
           <input
             type="text"
             value={claimId}
-            onChange={(e) => setClaimId(e.target.value.trim())}
+            onChange={(e) => setClaimId(e.target.value)}
             placeholder="Enter Claim ID"
             style={{ width: "100%", padding: "8px", marginTop: "4px" }}
           />
@@ -109,13 +121,13 @@ export default function UploadDocument({ claimId: initialClaimId }) {
       <form onSubmit={handleUpload}>
         <div style={{ marginBottom: "1rem" }}>
           <label>
-            Document Type: <span style={{ color: "red" }}>*</span>
+            Document Type <span style={{ color: "red" }}>*</span>
           </label>
           <select
             value={documentType}
             onChange={(e) => setDocumentType(e.target.value)}
-            required
-            style={{ display: "block", width: "100%", padding: "8px" }}
+            disabled={!claimId}
+            style={{ display: "block", width: "100%", padding: "8px", marginTop: "4px" }}
           >
             <option value="">Select Document Type</option>
             {documentTypes.map((d) => (
@@ -128,51 +140,51 @@ export default function UploadDocument({ claimId: initialClaimId }) {
 
         <div style={{ marginBottom: "1rem" }}>
           <label>
-            File: <span style={{ color: "red" }}>*</span>
+            File <span style={{ color: "red" }}>*</span>
           </label>
-          <input type="file" onChange={handleFileChange} required />
+          <input type="file" ref={fileInputRef} onChange={handleFileChange} disabled={!claimId} />
         </div>
 
         <div style={{ marginBottom: "1rem" }}>
-          <label>Description (optional):</label>
+          <label>Description (optional)</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
+            disabled={!claimId}
             style={{ width: "100%", padding: "8px" }}
           />
         </div>
 
         <button
           type="submit"
+          disabled={!claimId}
           style={{
-            backgroundColor: "#4caf50",
+            backgroundColor: "#4f46e5",
             color: "white",
             padding: "10px 20px",
             border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
+            borderRadius: "6px",
+            cursor: claimId ? "pointer" : "not-allowed",
           }}
         >
           Upload Document
         </button>
       </form>
 
-      {statusMsg && (
-        <p style={{ marginTop: "1rem", fontWeight: "bold" }}>{statusMsg}</p>
-      )}
+      {statusMsg && <p style={{ marginTop: "1rem", fontWeight: "bold" }}>{statusMsg}</p>}
 
       <hr style={{ margin: "2rem 0" }} />
 
-      <h3>Documents for Claim {claimId || ""}:</h3>
+      <h4>Uploaded Documents {claimId ? `for Claim ${claimId}` : ""}:</h4>
       {documents.length === 0 ? (
         <p>No documents uploaded yet.</p>
       ) : (
         <ul>
           {documents.map((doc) => (
             <li key={doc.document_id}>
-              <strong>{doc.document_type.replace(/_/g, " ")}</strong> -{" "}
-              {doc.file_name} - {doc.description || "No description"}
+              <strong>{doc.document_type.replace(/_/g, " ")}</strong> - {doc.file_name} -{" "}
+              {doc.description || "No description"}
             </li>
           ))}
         </ul>
