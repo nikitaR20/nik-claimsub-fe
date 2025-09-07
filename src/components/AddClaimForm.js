@@ -114,6 +114,12 @@ export default function AddClaimForm({
       e.preventDefault();
     }
 
+    // ✅ Prevent submission if mandatory fields are empty
+    if (!form.patient_id || !form.provider_id || !form.coverage_notes.trim() || !form.claim_type || !form.claim_submission_method) {
+      alert("Please fill all mandatory fields: Patient, Provider, Coverage Notes, Claim Type, Submission Method.");
+      return;
+    }
+
     const payload = {
       ...form,
       claim_id: form.claim_id || null,
@@ -126,10 +132,13 @@ export default function AddClaimForm({
     const mode = form.claim_id ? "update" : "create";
     const result = await onSubmit?.({ ...payload, mode });
 
-    // ✅ Fix: Set claim_id immediately after creating new claim
+    // ✅ Set claim_id immediately after creating new claim
     if (mode === "create" && result?.claim_id) {
       setForm(prev => ({ ...prev, claim_id: result.claim_id }));
     }
+
+    // ✅ Show success message but DO NOT redirect
+    alert(`Claim ${mode === "create" ? "created" : "updated"} successfully!`);
   };
 
   const handleSuggestCodes = async () => {
@@ -149,10 +158,8 @@ export default function AddClaimForm({
 
       const data = await res.json();
 
-      // Save suggestions to state
       setSuggestions(data);
 
-      // Auto-fill top suggestions into diagnosis_code and procedure_code fields
       setForm(prev => ({
         ...prev,
         suggested_diagnosis_code: data.suggested_diagnosis_codes?.[0]?.code || "",
@@ -421,7 +428,7 @@ export default function AddClaimForm({
         <div className="section">
           <h3>Upload Documents</h3>
           {form.claim_id ? (
-            <UploadDocument claimId={form.claim_id} />
+            <UploadDocument key={form.claim_id} claimId={form.claim_id} />
           ) : (
             <p style={{ color: "#6b7280" }}>
               You can upload documents after creating the claim.

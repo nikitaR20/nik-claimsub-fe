@@ -93,7 +93,7 @@ function AddClaimPage() {
       } else {
         alert("Claim created successfully!");
       }
-      navigate("/claims");
+      //navigate("/claims");
     } catch (err) {
       alert(err.message);
     }
