@@ -21,11 +21,8 @@ export default function UploadDocument({ claimId: initialClaimId }) {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    if (claimId) {
-      fetchDocuments(claimId);
-    } else {
-      setDocuments([]);
-    }
+    if (claimId) fetchDocuments(claimId);
+    else setDocuments([]);
   }, [claimId]);
 
   const fetchDocuments = async (id) => {
@@ -36,9 +33,7 @@ export default function UploadDocument({ claimId: initialClaimId }) {
       setDocuments(docs);
       setStatusMsg("");
     } catch (err) {
-      setStatusMsg(
-        "No documents found or unable to fetch documents for this claim."
-      );
+      setStatusMsg("No documents found or unable to fetch documents.");
       setDocuments([]);
     }
   };
@@ -48,20 +43,9 @@ export default function UploadDocument({ claimId: initialClaimId }) {
   const handleUpload = async (e) => {
     e.preventDefault();
 
-    console.log("Uploading document:", { claimId, documentType, file, description });
-
-    if (!claimId) {
-      setStatusMsg("Please enter a claim ID.");
-      return;
-    }
-    if (!documentType) {
-      setStatusMsg("Please select a document type.");
-      return;
-    }
-    if (!file) {
-      setStatusMsg("Please select a file to upload.");
-      return;
-    }
+    if (!claimId) return setStatusMsg("Please enter a claim ID.");
+    if (!documentType) return setStatusMsg("Please select a document type.");
+    if (!file) return setStatusMsg("Please select a file to upload.");
 
     const formData = new FormData();
     formData.append("claim_id", claimId);
@@ -74,7 +58,6 @@ export default function UploadDocument({ claimId: initialClaimId }) {
         method: "POST",
         body: formData,
       });
-
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.detail || "Upload failed");
@@ -93,17 +76,8 @@ export default function UploadDocument({ claimId: initialClaimId }) {
   };
 
   return (
-    <div
-      style={{
-        marginTop: "1rem",
-        padding: "1rem",
-        border: "1px solid #e5e7eb",
-        borderRadius: "12px",
-        background: "#f9fafb",
-      }}
-    >
+    <div style={{ marginTop: "1rem", padding: "1rem", border: "1px solid #e5e7eb", borderRadius: "12px", background: "#f9fafb" }}>
       <h3>Upload Documents</h3>
-      {!claimId && <p style={{ color: "#6b7280" }}>You can upload documents after creating the claim.</p>}
 
       {!initialClaimId && (
         <div style={{ marginBottom: "1rem" }}>
@@ -120,9 +94,7 @@ export default function UploadDocument({ claimId: initialClaimId }) {
 
       <form onSubmit={handleUpload}>
         <div style={{ marginBottom: "1rem" }}>
-          <label>
-            Document Type <span style={{ color: "red" }}>*</span>
-          </label>
+          <label>Document Type <span style={{ color: "red" }}>*</span></label>
           <select
             value={documentType}
             onChange={(e) => setDocumentType(e.target.value)}
@@ -131,17 +103,13 @@ export default function UploadDocument({ claimId: initialClaimId }) {
           >
             <option value="">Select Document Type</option>
             {documentTypes.map((d) => (
-              <option key={d.value} value={d.value}>
-                {d.label}
-              </option>
+              <option key={d.value} value={d.value}>{d.label}</option>
             ))}
           </select>
         </div>
 
         <div style={{ marginBottom: "1rem" }}>
-          <label>
-            File <span style={{ color: "red" }}>*</span>
-          </label>
+          <label>File <span style={{ color: "red" }}>*</span></label>
           <input type="file" ref={fileInputRef} onChange={handleFileChange} disabled={!claimId} />
         </div>
 
@@ -182,9 +150,16 @@ export default function UploadDocument({ claimId: initialClaimId }) {
       ) : (
         <ul>
           {documents.map((doc) => (
-            <li key={doc.document_id}>
-              <strong>{doc.document_type.replace(/_/g, " ")}</strong> - {doc.file_name} -{" "}
-              {doc.description || "No description"}
+            <li key={doc.document_id} style={{ marginBottom: "0.5rem" }}>
+              <strong>{doc.document_type.replace(/_/g, " ")}</strong> - {doc.file_name} - {doc.description || "No description"}{" "}
+              <a
+                href={`${API_BASE}/claim-documents/download/${doc.document_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ marginLeft: "8px", color: "#4f46e5", textDecoration: "underline" }}
+              >
+                View
+              </a>
             </li>
           ))}
         </ul>

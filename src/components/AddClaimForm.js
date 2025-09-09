@@ -43,8 +43,11 @@ export default function AddClaimForm({
     predicted_payout: 0,
   });
 
-  const [suggestions, setSuggestions] = useState(null); // <-- store suggested codes
+  const [isEditing, setIsEditing] = useState(true); // editable by default
+  const [pageTitle, setPageTitle] = useState("Create Claim");
+  const [suggestions, setSuggestions] = useState(null);
 
+  // Prefill form when coming from Claim List
   useEffect(() => {
     if (location.state?.initialData) {
       const data = { ...location.state.initialData };
@@ -52,6 +55,10 @@ export default function AddClaimForm({
         data.claim_date = new Date(data.claim_date).toISOString().split("T")[0];
       }
       setForm(data);
+      setIsEditing(false); // view mode
+      setPageTitle("View Claim");
+    } else {
+      setPageTitle("Create Claim");
     }
   }, [location.state]);
 
@@ -114,7 +121,6 @@ export default function AddClaimForm({
       e.preventDefault();
     }
 
-    // ✅ Prevent submission if mandatory fields are empty
     if (!form.patient_id || !form.provider_id || !form.coverage_notes.trim() || !form.claim_type || !form.claim_submission_method) {
       alert("Please fill all mandatory fields: Patient, Provider, Coverage Notes, Claim Type, Submission Method.");
       return;
@@ -132,12 +138,10 @@ export default function AddClaimForm({
     const mode = form.claim_id ? "update" : "create";
     const result = await onSubmit?.({ ...payload, mode });
 
-    // ✅ Set claim_id immediately after creating new claim
     if (mode === "create" && result?.claim_id) {
       setForm(prev => ({ ...prev, claim_id: result.claim_id }));
     }
 
-    // ✅ Show success message but DO NOT redirect
     alert(`Claim ${mode === "create" ? "created" : "updated"} successfully!`);
   };
 
@@ -157,7 +161,6 @@ export default function AddClaimForm({
       if (!res.ok) throw new Error("AI suggestion failed");
 
       const data = await res.json();
-
       setSuggestions(data);
 
       setForm(prev => ({
@@ -170,6 +173,11 @@ export default function AddClaimForm({
     } catch (err) {
       alert(err.message);
     }
+  };
+
+  const handleEditClick = () => {
+    setIsEditing(true);
+    setPageTitle("Edit Claim");
   };
 
   return (
@@ -196,12 +204,13 @@ export default function AddClaimForm({
         .btn { appearance: none; border: none; border-radius: 10px; padding: 10px 18px; background: #4f46e5; color: white; font-weight: 700; cursor: pointer; transition: transform .02s ease, box-shadow .2s ease, background .2s ease; }
         .btn:hover { background: #4338ca; }
         .btn:active { transform: translateY(1px); }
-        .footer { display: flex; justify-content: center; margin-top: 12px; }
+        .footer { display: flex; justify-content: center; margin-top: 12px; gap: 12px; flex-wrap: wrap; }
         .helper { font-size: 12px; color: #6b7280; margin-top: 6px; }
       `}</style>
 
       <div className="card">
-        <h2 className="title">{form.claim_id ? "Edit Claim" : "Create Claim"}</h2>
+        <h2 className="title">{pageTitle}</h2>
+
         <form onSubmit={handleSubmit}>
           {/* Patient selection */}
           <div className="section">
@@ -211,6 +220,7 @@ export default function AddClaimForm({
               value={form.patient_id}
               onChange={handleSelectPatient}
               className="select"
+              disabled={!isEditing && !!form.claim_id}
             >
               <option value="">Select patient</option>
               {safePatients.map((p) => (
@@ -238,6 +248,7 @@ export default function AddClaimForm({
               value={form.provider_id}
               onChange={handleSelectProvider}
               className="select"
+              disabled={!isEditing && !!form.claim_id}
             >
               <option value="">Select provider</option>
               {safeProviders.map((p) => (
@@ -257,18 +268,21 @@ export default function AddClaimForm({
           {/* Coverage Notes */}
           <div className="section">
             <label className="label">Coverage Notes</label>
-            <textarea name="coverage_notes" value={form.coverage_notes} onChange={handleChange} className="textarea" />
-            <button
-              type="button"
-              className="btn"
-              style={{ marginTop: "8px" }}
-              onClick={handleSuggestCodes}
-            >
-              Suggest Codes
-            </button>
+            <textarea
+              name="coverage_notes"
+              value={form.coverage_notes}
+              onChange={handleChange}
+              className="textarea"
+              readOnly={!isEditing}
+            />
+            {isEditing && (
+              <button type="button" className="btn" style={{ marginTop: "8px" }} onClick={handleSuggestCodes}>
+                Suggest Codes
+              </button>
+            )}
           </div>
 
-          {/* Show suggestions below */}
+          {/* Show suggestions */}
           {suggestions && (
             <div className="section">
               <h4 className="label">AI Suggested Codes</h4>
@@ -276,9 +290,7 @@ export default function AddClaimForm({
                 <strong>Diagnosis Codes:</strong>
                 <ul>
                   {suggestions.suggested_diagnosis_codes?.map((dx, idx) => (
-                    <li key={idx}>
-                      {dx.code} - {dx.description}
-                    </li>
+                    <li key={idx}>{dx.code} - {dx.description}</li>
                   ))}
                 </ul>
               </div>
@@ -286,9 +298,7 @@ export default function AddClaimForm({
                 <strong>Procedure Codes:</strong>
                 <ul>
                   {suggestions.suggested_procedure_codes?.map((proc, idx) => (
-                    <li key={idx}>
-                      {proc.code} - {proc.description}
-                    </li>
+                    <li key={idx}>{proc.code} - {proc.description}</li>
                   ))}
                 </ul>
               </div>
@@ -307,6 +317,7 @@ export default function AddClaimForm({
                 onChange={handleChange}
                 className="input"
                 placeholder="0.00"
+                readOnly={!isEditing}
               />
             </div>
             <div>
@@ -317,6 +328,7 @@ export default function AddClaimForm({
                 value={form.claim_date}
                 onChange={handleChange}
                 className="input"
+                readOnly={!isEditing}
               />
             </div>
             <div>
@@ -326,6 +338,7 @@ export default function AddClaimForm({
                 value={form.claim_status}
                 onChange={handleChange}
                 className="select"
+                disabled={!isEditing}
               >
                 <option value="">Select Status</option>
                 <option value="Pending">Pending</option>
@@ -340,7 +353,7 @@ export default function AddClaimForm({
           <div className="section grid grid-2">
             <div>
               <label className="label">Claim Type</label>
-              <select name="claim_type" value={form.claim_type} onChange={handleChange} className="select">
+              <select name="claim_type" value={form.claim_type} onChange={handleChange} className="select" disabled={!isEditing}>
                 <option value="">Select Type</option>
                 <option value="Inpatient">Inpatient</option>
                 <option value="Outpatient">Outpatient</option>
@@ -351,7 +364,7 @@ export default function AddClaimForm({
             </div>
             <div>
               <label className="label">Submission Method</label>
-              <select name="claim_submission_method" value={form.claim_submission_method} onChange={handleChange} className="select">
+              <select name="claim_submission_method" value={form.claim_submission_method} onChange={handleChange} className="select" disabled={!isEditing}>
                 <option value="">Select Method</option>
                 <option value="Electronic">Electronic (EDI)</option>
                 <option value="Paper">Paper</option>
@@ -362,10 +375,10 @@ export default function AddClaimForm({
 
           {/* Codes */}
           <div className="section grid grid-4">
-            <input type="text" name="diagnosis_code" value={form.diagnosis_code} onChange={handleChange} placeholder="Diagnosis Code" className="input" />
-            <input type="text" name="procedure_code" value={form.procedure_code} onChange={handleChange} placeholder="Procedure Code" className="input" />
-            <input type="text" name="suggested_diagnosis_code" value={form.suggested_diagnosis_code} onChange={handleChange} placeholder="Suggested Dx Code" className="input" />
-            <input type="text" name="suggested_procedure_code" value={form.suggested_procedure_code} onChange={handleChange} placeholder="Suggested Proc Code" className="input" />
+            <input type="text" name="diagnosis_code" value={form.diagnosis_code} onChange={handleChange} placeholder="Diagnosis Code" className="input" readOnly={!isEditing} />
+            <input type="text" name="procedure_code" value={form.procedure_code} onChange={handleChange} placeholder="Procedure Code" className="input" readOnly={!isEditing} />
+            <input type="text" name="suggested_diagnosis_code" value={form.suggested_diagnosis_code} onChange={handleChange} placeholder="Suggested Dx Code" className="input" readOnly={!isEditing} />
+            <input type="text" name="suggested_procedure_code" value={form.suggested_procedure_code} onChange={handleChange} placeholder="Suggested Proc Code" className="input" readOnly={!isEditing} />
           </div>
 
           {/* Approval Probability */}
@@ -379,17 +392,10 @@ export default function AddClaimForm({
               min="0"
               max="100"
               className="range"
+              disabled={!isEditing}
             />
             <div className="muted">{Number(form.approval_probability) || 0}%</div>
-            <input
-              type="text"
-              name="predicted_payout"
-              value={form.predicted_payout}
-              readOnly
-              onChange={handleChange}
-              placeholder="Predicted Payout"
-              className="input"
-            />
+            <input type="text" name="predicted_payout" value={form.predicted_payout} readOnly className="input" placeholder="Predicted Payout" />
           </div>
 
           {/* Fraud */}
@@ -401,6 +407,7 @@ export default function AddClaimForm({
                 name="fraud_flag"
                 checked={!!form.fraud_flag}
                 onChange={handleChange}
+                disabled={!isEditing}
               />
               <span>Flag as potential fraud</span>
             </div>
@@ -415,12 +422,20 @@ export default function AddClaimForm({
               onChange={handleChange}
               className="input"
               placeholder="Reason (optional)"
+              readOnly={!isEditing}
             />
           </div>
 
-          {/* Submit Button */}
+          {/* Footer buttons */}
           <div className="footer">
-            <button type="submit" className="btn">Submit</button>
+            {!isEditing && form.claim_id && (
+              <button type="button" className="btn" onClick={handleEditClick}>
+                Edit Claim
+              </button>
+            )}
+            <button type="submit" className="btn" disabled={!isEditing && !form.claim_id}>
+              Submit
+            </button>
           </div>
         </form>
 
@@ -430,9 +445,7 @@ export default function AddClaimForm({
           {form.claim_id ? (
             <UploadDocument key={form.claim_id} claimId={form.claim_id} />
           ) : (
-            <p style={{ color: "#6b7280" }}>
-              You can upload documents after creating the claim.
-            </p>
+            <p style={{ color: "#6b7280" }}>You can upload documents after creating the claim.</p>
           )}
         </div>
       </div>
