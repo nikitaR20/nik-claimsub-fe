@@ -1,38 +1,232 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for the Claims Management System */
+
+/* Base styles */
 .App {
-  text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
 }
 
-.App-link {
-  color: #61dafb;
+/* Form styles */
+.form-input {
+  @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+.form-select {
+  @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+}
+
+.form-textarea {
+  @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none;
+}
+
+/* Button styles */
+.btn-primary {
+  @apply bg-blue-600 text-white px-4 py-2 rounded-md font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200;
+}
+
+.btn-secondary {
+  @apply bg-gray-200 text-gray-900 px-4 py-2 rounded-md font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors duration-200;
+}
+
+.btn-danger {
+  @apply bg-red-600 text-white px-4 py-2 rounded-md font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors duration-200;
+}
+
+.btn-success {
+  @apply bg-green-600 text-white px-4 py-2 rounded-md font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-200;
+}
+
+/* Card styles */
+.card {
+  @apply bg-white overflow-hidden shadow rounded-lg;
+}
+
+.card-header {
+  @apply px-4 py-5 sm:px-6 border-b border-gray-200;
+}
+
+.card-body {
+  @apply px-4 py-5 sm:p-6;
+}
+
+/* Table styles */
+.table-container {
+  @apply bg-white shadow overflow-hidden sm:rounded-md;
+}
+
+.table-header {
+  @apply px-4 py-5 sm:px-6 border-b border-gray-200;
+}
+
+/* Status badge styles */
+.status-badge {
+  @apply inline-flex px-2 py-1 text-xs font-semibold rounded-full;
+}
+
+.status-draft { @apply bg-gray-100 text-gray-800; }
+.status-submitted { @apply bg-blue-100 text-blue-800; }
+.status-in-process { @apply bg-yellow-100 text-yellow-800; }
+.status-approved { @apply bg-green-100 text-green-800; }
+.status-denied { @apply bg-red-100 text-red-800; }
+.status-paid { @apply bg-green-100 text-green-800; }
+.status-rejected { @apply bg-red-100 text-red-800; }
+.status-pending { @apply bg-orange-100 text-orange-800; }
+
+/* Loading spinner */
+.spinner {
+  @apply animate-spin rounded-full border-b-2 border-blue-600;
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+  @apply fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50;
+}
+
+.modal-content {
+  @apply relative top-4 mx-auto p-5 border w-full shadow-lg rounded-md bg-white;
+}
+
+/* Navigation active states */
+.nav-link-active {
+  @apply border-blue-500 text-gray-900;
+}
+
+.nav-link-inactive {
+  @apply border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700;
+}
+
+/* Alert styles */
+.alert {
+  @apply rounded-md p-4 border;
+}
+
+.alert-error {
+  @apply bg-red-50 border-red-200 text-red-700;
+}
+
+.alert-success {
+  @apply bg-green-50 border-green-200 text-green-700;
+}
+
+.alert-warning {
+  @apply bg-yellow-50 border-yellow-200 text-yellow-700;
+}
+
+.alert-info {
+  @apply bg-blue-50 border-blue-200 text-blue-700;
+}
+
+/* File upload drag and drop */
+.file-upload-area {
+  @apply mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md transition-colors;
+}
+
+.file-upload-active {
+  @apply border-blue-400 bg-blue-50;
+}
+
+.file-upload-inactive {
+  @apply border-gray-300 hover:border-gray-400;
+}
+
+/* Responsive table wrapper */
+.table-responsive {
+  @apply overflow-x-auto;
+}
+
+/* Focus states for accessibility */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
   }
-  to {
-    transform: rotate(360deg);
+  
+  .print-only {
+    display: block !important;
   }
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+  /* Add dark mode styles if needed */
+}
+
+/* Custom scrollbar */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(156, 163, 175) rgb(243, 244, 246);
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: rgb(243, 244, 246);
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgb(156, 163, 175);
+  border-radius: 3px;
+}
+
+/* Animation classes */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Tooltip styles */
+.tooltip {
+  @apply invisible absolute z-10 py-2 px-3 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm opacity-0 transition-opacity duration-300;
+}
+
+.tooltip-trigger:hover .tooltip {
+  @apply visible opacity-100;
+}
+
+/* Custom checkbox and radio styles */
+.custom-checkbox {
+  @apply h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded;
+}
+
+.custom-radio {
+  @apply h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300;
+}
+
+/* Layout utilities */
+.main-content {
+  @apply container mx-auto px-4 py-8 max-w-7xl;
+}
+
+.page-header {
+  @apply flex items-center justify-between mb-6;
+}
+
+.page-title {
+  @apply text-2xl font-bold text-gray-900;
+}
+
+.page-subtitle {
+  @apply text-gray-600 mt-1;
 }

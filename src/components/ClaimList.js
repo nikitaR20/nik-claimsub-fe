@@ -1,9 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 
-export default function ClaimList({ claims }) {
-  const navigate = useNavigate();
-
+export default function ClaimList({ claims = [], onEditClaim }) {
   const [filters, setFilters] = useState({
     patient: "",
     provider: "",
@@ -81,41 +78,7 @@ export default function ClaimList({ claims }) {
                 key={c.claim_id}
                 style={{ cursor: "pointer" }}
                 title={c.coverage_notes || "No coverage notes"}
-                onClick={() =>
-                  navigate("/", {
-                    state: {
-                      initialData: {
-                        claim_id: c.claim_id,
-                        claim_amount: c.claim_amount ?? "",
-                        claim_date: c.claim_date ?? "",
-                        claim_status: c.claim_status ?? "",
-                        claim_type: c.claim_type ?? "",
-                        claim_submission_method: c.claim_submission_method ?? "",
-                        diagnosis_code: c.diagnosis_code ?? "",
-                        procedure_code: c.procedure_code ?? "",
-                        suggested_diagnosis_code: c.suggested_diagnosis_code ?? "",
-                        suggested_procedure_code: c.suggested_procedure_code ?? "",
-                        approval_probability: c.approval_probability ?? 0,
-                        fraud_flag: c.fraud_flag ?? false,
-                        fraud_reason: c.fraud_reason ?? "",
-                        coverage_notes: c.coverage_notes ?? "",
-
-                        // Patient info
-                        patient_id: c.patient?.patient_id ?? "",
-                        patient_age: c.patient?.patient_age ?? "",
-                        patient_gender: c.patient?.patient_gender ?? "",
-                        patient_income: c.patient?.patient_income ?? "",
-                        patient_marital_status: c.patient?.patient_marital_status ?? "",
-                        patient_employment_status: c.patient?.patient_employment_status ?? "",
-
-                        // Provider info
-                        provider_id: c.provider?.provider_id ?? "",
-                        provider_specialty: c.provider?.specialty ?? c.provider?.provider_specialty ?? "",
-                        provider_location: c.provider?.location ?? c.provider?.provider_location ?? "",
-                      },
-                    },
-                  })
-                }
+                onClick={() => onEditClaim && onEditClaim(c)} // ✅ call callback instead of navigate
               >
                 <td style={{ padding: "8px", border: "1px solid #ddd", color: "#4f46e5", fontWeight: 600 }}>{idx + 1}</td>
                 <td style={{ padding: "8px", border: "1px solid #ddd" }}>{patientName}</td>

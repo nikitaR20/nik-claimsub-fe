@@ -1,26 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base HTML styles */
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background-color: #f9f9f9;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-label {
-  display: block;
-  margin-bottom: 0.25rem;
-  font-weight: 500;
+code {
+  font-family: 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
 }
 
-input,
-select,
-textarea {
-  width: 100%;
-  padding: 8px;
-  margin-top: 4px;
-  margin-bottom: 12px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-button {
-  cursor: pointer;
+/* Make sure the app takes full height */
+html, body, #root {
+  height: 100%;
 }
